@@ -4,3 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+faer = "0.17.0"
+plotters = "0.3.3"
+approx = "0.3.2"
