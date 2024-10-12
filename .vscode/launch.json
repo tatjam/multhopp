@@ -1,0 +1,42 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug executable 'multhopp'",
+			"cargo": {
+				"args": [
+					"build",
+					"--bin=multhopp",
+					"--package=multhopp"
+				],
+				"filter": {
+					"name": "multhopp",
+					"kind": "bin"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug unit tests in executable 'multhopp'",
+			"cargo": {
+				"args": [
+					"test",
+					"--no-run",
+					"--bin=multhopp",
+					"--package=multhopp"
+				],
+				"filter": {
+					"name": "multhopp",
+					"kind": "bin"
+				}
+			},
+			"args": [],
+			"cwd": "${workspaceFolder}"
+		}
+	]
+}
