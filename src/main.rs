@@ -14,12 +14,20 @@ fn cosine_samples(num_points: usize, b: f64) -> (Vec<f64>, Vec<f64>) {
     // We use the mapping y = b/2 * cos(theta)
     // Uniformly sample in cosine space (equivalent to cosine sampling in y space)
     // We don't include the extremes, as they are useless
-    let cos_thetas: Vec<f64> = (0..num_points)
+    /*let cos_thetas: Vec<f64> = (0..num_points)
         .into_iter()
         .map(|i| ((i as f64 + 1.0) / (num_points as f64 + 1.0) - 0.5) * 2.0)
         .collect();
     let thetas: Vec<f64> = cos_thetas.iter().map(|c| c.acos()).collect();
-    let ys: Vec<f64> = cos_thetas.iter().map(|c| b / 2.0 * c).collect();
+    let ys: Vec<f64> = cos_thetas.iter().map(|c| b / 2.0 * c).collect();*/
+
+    // Linear sampling in theta space, from nearly 0 to nearly PI
+    let thetas: Vec<f64> = (0..num_points)
+        .into_iter()
+        .map(|i| (i as f64 + 1.0) / (num_points as f64 + 1.0) * std::f64::consts::PI)
+        .collect();
+    // Ys thus go from nearly b / 2.0 * cos(0) to nearly b / 2.0 * cos(PI)
+    let ys: Vec<f64> = thetas.iter().map(|c| b / 2.0 * c.cos()).collect();
 
     return (thetas, ys);
 }
@@ -52,14 +60,18 @@ fn multhopp(
         let k = c / b;
 
         for n in 1..(num_points + 1) {
-            let t1 = 2.0 / (k * clalpha);
+            /*let t1 = 2.0 / (k * clalpha);
             let t2 = (n as f64) / (2.0 * theta.sin());
             let t = t1 + t2;
-            mat[(j, n - 1)] = t * (n as f64 * theta).sin();
+            mat[(j, n - 1)] = t * (n as f64 * theta).sin();*/
+            mat[(j, n - 1)] = (4.0 * b / c) * ((n as f64) * theta).sin()
+                + clalpha * (n as f64) * ((n as f64) * theta).sin() / theta.sin();
         }
 
-        rhs[(j, 0)] = alpha;
+        rhs[(j, 0)] = clalpha * alpha;
     }
+
+    println!("{:?}{:?}", mat, rhs);
 
     let sln = mat.full_piv_lu().solve(rhs);
 
@@ -93,6 +105,8 @@ fn run_case(
     let fname = [name, ".txt"].concat();
     let mut ofile = File::options()
         .write(true)
+        .append(false)
+        .truncate(true)
         .create(true)
         .open(fname)
         .unwrap();
@@ -125,7 +139,7 @@ fn main() {
         |_| 1.0,
         |_| 0.1,
         |_| 2.0 * std::f64::consts::PI,
-        30,
+        45,
         1.0,
     );
     run_case(
@@ -136,8 +150,17 @@ fn main() {
         },
         |_| 0.1,
         |_| 2.0 * std::f64::consts::PI,
-        30,
+        45,
         1.0,
+    );
+
+    run_case(
+        "out/enunciado",
+        |y| 2.5 - y.abs() * (2.5 - 1.2),
+        |y| 0.5,
+        |y| 5.1,
+        40,
+        12.0,
     );
 }
 

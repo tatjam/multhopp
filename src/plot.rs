@@ -18,7 +18,7 @@ pub fn make_default_plot<'a>(name: &'a str, b: f64) -> PlotContext<'a> {
     let mut cc = ChartBuilder::on(&root_area)
         .margin(5)
         .set_all_label_area_size(50)
-        .build_cartesian_2d(b_range.clone(), -0.2f32..0.2)
+        .build_cartesian_2d(b_range.clone(), -(0.2 * b) as f32..(0.2 * b) as f32)
         .unwrap();
 
     cc.configure_mesh()
@@ -64,7 +64,7 @@ pub fn add_geom(name: &str, ctx: &mut PlotContext, cuerda: fn(f64) -> f64, scale
         .draw_series(LineSeries::new(
             b_range_step.values().map(|y| {
                 let adimy = 2.0 * y / b;
-                (y, (cuerda(adimy) * scale * 0.25) as f32)
+                (y, (cuerda(adimy) * scale * 0.25 * b) as f32)
             }),
             &BLUE,
         ))
@@ -76,7 +76,7 @@ pub fn add_geom(name: &str, ctx: &mut PlotContext, cuerda: fn(f64) -> f64, scale
         .draw_series(LineSeries::new(
             b_range_step.values().map(|y| {
                 let adimy = 2.0 * y / b;
-                (y, (-cuerda(adimy) * scale * 0.75) as f32)
+                (y, (-cuerda(adimy) * scale * 0.75 * b) as f32)
             }),
             &BLUE,
         ))
