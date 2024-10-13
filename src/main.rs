@@ -91,12 +91,10 @@ fn multhopp(
     return sln;
 }
 
-// We exploit the fact that AR = b^2 / S
 // S is int_(-b/2)^(b/2) c(y) dy
 // by changing variable to y' = 2 y / b we find that
-// b^2 / S = b^2 / b int_(-1)^(1) c(y') dy' = 2 b / int_(-0.5)^(0.5) c(y') dy'
-// We use rectangle integration with heaps of points to get accurate
-fn estimate_ar(cuerda: fn(f64) -> f64, b: f64) -> f64 {
+// S = b / 2 int_(-1)^(1) c(y') dy'
+fn wing_area(cuerda: fn(f64) -> f64, b: f64) -> f64 {
     let dyp = 0.001;
     let mut int = 0.0;
     let mut yp = -1.0;
@@ -104,7 +102,18 @@ fn estimate_ar(cuerda: fn(f64) -> f64, b: f64) -> f64 {
         int += cuerda(yp) * dyp;
         yp += dyp;
     }
-    return 2.0 * b / int;
+    0.5 * b * int
+}
+
+// Mean chord is that such that b * mean_chord = S
+fn mean_chord(cuerda: fn(f64) -> f64, b: f64) -> f64 {
+    wing_area(cuerda, b) / b
+}
+
+// We exploit the fact that AR = b^2 / S
+// We use rectangle integration with heaps of points to get accurate
+fn estimate_ar(cuerda: fn(f64) -> f64, b: f64) -> f64 {
+    return b * b / wing_area(cuerda, b);
 }
 
 fn run_case(
@@ -139,18 +148,60 @@ fn run_case(
     };
     writeln!(&mut ofile, "ostwald k = {}", k).unwrap();
 
-    let plotname = [name, ".png"].concat();
-    let mut ctx = plot::make_default_plot(&plotname, b);
-    plot::add_cl(&mut ctx, &sln);
-    plot::add_geom("cuerda", &mut ctx, cuerda, 0.05);
-    plot::finish(ctx);
+    // We assume maximum lift happens midpoint, we exceed by 20% just in case
+    let mag = {
+        let mut sum = 0.0;
+        for i in 0..sln.nrows() {
+            let n = (i + 1) as f64;
+            sum += sln[(i, 0)] * (n * std::f64::consts::PI * 0.5).sin();
+        }
+        2.0 * b * sum / mean_chord(cuerda, b) * 1.2
+    };
+
+    {
+        let plotname = [name, "-cl.png"].concat();
+        let mut ctx = plot::make_default_plot(&plotname, b, -mag, mag);
+        plot::add_cl(&mut ctx, &sln, mean_chord(cuerda, b));
+        plot::finish(ctx);
+    }
+    /*{
+        let plotname = [name, "-geom.png"].concat();
+        let mut ctx = plot::make_default_plot(&plotname, b);
+        plot::add_fn("cuerda", &mut ctx, cuerda, 0.05, true);
+        plot::finish(ctx);
+    }
+    {
+        let plotname = [name, "-alpha.png"].concat();
+        let mut ctx = plot::make_default_plot(&plotname, b);
+        plot::add_fn("alpha", &mut ctx, alpha, 0.05, false);
+        plot::finish(ctx);
+    }
+    {
+        let plotname = [name, "-cd.png"].concat();
+        let mut ctx = plot::make_default_plot(&plotname, b);
+        plot::add_cd(&mut ctx, &sln);
+        plot::finish(ctx);
+    }
+    {
+        let plotname = [name, "-cmx.png"].concat();
+        let mut ctx = plot::make_default_plot(&plotname, b);
+        plot::add_cmx(&mut ctx, &sln);
+        plot::finish(ctx);
+    }
+    {
+        let plotname = [name, "-cmy.png"].concat();
+        let mut ctx = plot::make_default_plot(&plotname, b);
+        plot::add_cmy(&mut ctx, &sln);
+        plot::finish(ctx);
+    }*/
 }
 
 fn main() {
+    const AOA: f64 = 0.0 * DEG_TO_RAD;
     run_case(
         "out/rectangular",
         |_| 1.0,
-        |_| 0.1,
+        |_| AOA,
         |_| 2.0 * std::f64::consts::PI,
         45,
         1.0,
@@ -161,13 +212,11 @@ fn main() {
             // y goes from -1 to 1
             (1.0 - y * y).sqrt()
         },
-        |_| 0.1,
+        |_| AOA,
         |_| 2.0 * std::f64::consts::PI,
         45,
         1.0,
     );
-
-    const AOA: f64 = 1.0 * DEG_TO_RAD;
 
     run_case(
         "out/enunciado",
