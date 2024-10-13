@@ -10,16 +10,31 @@ use std::{fs::File, io::Write};
 
 mod plot;
 
+fn deg_to_rad(deg: f64) -> f64 {
+    deg * std::f64::consts::PI / 180.0
+}
+
+// Returns a delta alpha of attack to be added
+// yp ranges from -1 to 1
+fn ailerons(yp: f64, extend: f64, position: f64) -> f64 {
+    if yp > 1.0 - extend {
+        position
+    } else if yp < -1.0 + extend {
+        -position
+    } else {
+        0.0
+    }
+}
+
+fn linear_law(yp: f64, root: f64, tip: f64) -> f64 {
+    let tip_factor = 1.0 - yp.abs();
+    return root * (1.0 - tip_factor) + tip * tip_factor;
+}
+
 fn cosine_samples(num_points: usize, b: f64) -> (Vec<f64>, Vec<f64>) {
     // We use the mapping y = b/2 * cos(theta)
     // Uniformly sample in cosine space (equivalent to cosine sampling in y space)
     // We don't include the extremes, as they are useless
-    /*let cos_thetas: Vec<f64> = (0..num_points)
-        .into_iter()
-        .map(|i| ((i as f64 + 1.0) / (num_points as f64 + 1.0) - 0.5) * 2.0)
-        .collect();
-    let thetas: Vec<f64> = cos_thetas.iter().map(|c| c.acos()).collect();
-    let ys: Vec<f64> = cos_thetas.iter().map(|c| b / 2.0 * c).collect();*/
 
     // Linear sampling in theta space, from nearly 0 to nearly PI
     let thetas: Vec<f64> = (0..num_points)
@@ -64,14 +79,14 @@ fn multhopp(
             let t2 = (n as f64) / (2.0 * theta.sin());
             let t = t1 + t2;
             mat[(j, n - 1)] = t * (n as f64 * theta).sin();*/
+            // This is equivalent, as done in my TFG:
             mat[(j, n - 1)] = (4.0 * b / c) * ((n as f64) * theta).sin()
                 + clalpha * (n as f64) * ((n as f64) * theta).sin() / theta.sin();
         }
 
+        //rhs[(j, 0)] = alpha;
         rhs[(j, 0)] = clalpha * alpha;
     }
-
-    println!("{:?}{:?}", mat, rhs);
 
     let sln = mat.full_piv_lu().solve(rhs);
 
@@ -154,10 +169,15 @@ fn main() {
         1.0,
     );
 
+    const AOA: f64 = 0.1;
+
     run_case(
         "out/enunciado",
-        |y| 2.5 - y.abs() * (2.5 - 1.2),
-        |y| 0.5,
+        |y| linear_law(y, 2.5, 1.2),
+        |y| {
+            AOA + linear_law(y, deg_to_rad(2.0), deg_to_rad(-2.0))
+                + ailerons(y, 0.1, deg_to_rad(4.0))
+        },
         |y| 5.1,
         40,
         12.0,
