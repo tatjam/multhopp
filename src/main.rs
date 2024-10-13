@@ -148,6 +148,8 @@ fn run_case(
     };
     writeln!(&mut ofile, "ostwald k = {}", k).unwrap();
 
+    let mean_c = mean_chord(cuerda, b);
+
     // We assume maximum lift happens midpoint, we exceed by 20% just in case
     let mag = {
         let mut sum = 0.0;
@@ -155,45 +157,45 @@ fn run_case(
             let n = (i + 1) as f64;
             sum += sln[(i, 0)] * (n * std::f64::consts::PI * 0.5).sin();
         }
-        2.0 * b * sum / mean_chord(cuerda, b) * 1.2
+        2.0 * b * sum / mean_c * 1.2
     };
 
     {
         let plotname = [name, "-cl.png"].concat();
         let mut ctx = plot::make_default_plot(&plotname, b, -mag, mag);
-        plot::add_cl(&mut ctx, &sln, mean_chord(cuerda, b));
+        plot::add_cl(&mut ctx, &sln, mean_c);
         plot::finish(ctx);
     }
-    /*{
+    {
         let plotname = [name, "-geom.png"].concat();
-        let mut ctx = plot::make_default_plot(&plotname, b);
+        let mut ctx = plot::make_default_plot(&plotname, b, -mean_c, mean_c);
         plot::add_fn("cuerda", &mut ctx, cuerda, 0.05, true);
         plot::finish(ctx);
     }
     {
         let plotname = [name, "-alpha.png"].concat();
-        let mut ctx = plot::make_default_plot(&plotname, b);
+        let mut ctx = plot::make_default_plot(&plotname, b, -0.2, 0.2);
         plot::add_fn("alpha", &mut ctx, alpha, 0.05, false);
         plot::finish(ctx);
     }
     {
         let plotname = [name, "-cd.png"].concat();
-        let mut ctx = plot::make_default_plot(&plotname, b);
-        plot::add_cd(&mut ctx, &sln);
+        let mut ctx = plot::make_default_plot(&plotname, b, -mag * 0.03, 0.01);
+        plot::add_cd(&mut ctx, &sln, mean_c);
         plot::finish(ctx);
     }
     {
         let plotname = [name, "-cmx.png"].concat();
-        let mut ctx = plot::make_default_plot(&plotname, b);
-        plot::add_cmx(&mut ctx, &sln);
+        let mut ctx = plot::make_default_plot(&plotname, b, -mag, mag);
+        plot::add_cmx(&mut ctx, &sln, mean_c);
         plot::finish(ctx);
     }
     {
         let plotname = [name, "-cmy.png"].concat();
-        let mut ctx = plot::make_default_plot(&plotname, b);
-        plot::add_cmy(&mut ctx, &sln);
+        let mut ctx = plot::make_default_plot(&plotname, b, -mag * 0.03, mag * 0.03);
+        plot::add_cmy(&mut ctx, &sln, mean_c);
         plot::finish(ctx);
-    }*/
+    }
 }
 
 fn main() {
