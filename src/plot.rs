@@ -48,7 +48,7 @@ pub fn add_cl(ctx: &mut PlotContext, sln: &fa::Mat<f64>) {
                 }
                 // We assume incoming air speed of 1m/s
                 sum *= 1.225 * b;
-                (y, sum as f32)
+                (y, sum as f32 * 10.0)
             }),
             &RED,
         ))

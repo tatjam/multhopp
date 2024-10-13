@@ -1,18 +1,16 @@
+#[allow(unused_imports)]
 #[macro_use]
 extern crate approx as approx;
 
 extern crate faer as fa;
-use core::{f64, num};
+use core::f64;
 
 use fa::{prelude::SpSolver, FaerMat};
-use plotters::prelude::{DiscreteRanged, IntoLinspace};
 use std::{fs::File, io::Write};
 
 mod plot;
 
-fn deg_to_rad(deg: f64) -> f64 {
-    deg * std::f64::consts::PI / 180.0
-}
+const DEG_TO_RAD: f64 = 0.0174532925199;
 
 // Returns a delta alpha of attack to be added
 // yp ranges from -1 to 1
@@ -27,7 +25,7 @@ fn ailerons(yp: f64, extend: f64, position: f64) -> f64 {
 }
 
 fn linear_law(yp: f64, root: f64, tip: f64) -> f64 {
-    let tip_factor = 1.0 - yp.abs();
+    let tip_factor = yp.abs();
     return root * (1.0 - tip_factor) + tip * tip_factor;
 }
 
@@ -75,17 +73,17 @@ fn multhopp(
         let k = c / b;
 
         for n in 1..(num_points + 1) {
-            /*let t1 = 2.0 / (k * clalpha);
+            let t1 = 2.0 / (k * clalpha);
             let t2 = (n as f64) / (2.0 * theta.sin());
             let t = t1 + t2;
-            mat[(j, n - 1)] = t * (n as f64 * theta).sin();*/
+            mat[(j, n - 1)] = t * (n as f64 * theta).sin();
             // This is equivalent, as done in my TFG:
-            mat[(j, n - 1)] = (4.0 * b / c) * ((n as f64) * theta).sin()
-                + clalpha * (n as f64) * ((n as f64) * theta).sin() / theta.sin();
+            /*mat[(j, n - 1)] = (4.0 * b / c) * ((n as f64) * theta).sin()
+            + clalpha * (n as f64) * ((n as f64) * theta).sin() / theta.sin();*/
         }
 
-        //rhs[(j, 0)] = alpha;
-        rhs[(j, 0)] = clalpha * alpha;
+        rhs[(j, 0)] = alpha;
+        //rhs[(j, 0)] = clalpha * alpha;
     }
 
     let sln = mat.full_piv_lu().solve(rhs);
@@ -98,7 +96,7 @@ fn multhopp(
 // by changing variable to y' = 2 y / b we find that
 // b^2 / S = b^2 / b int_(-1)^(1) c(y') dy' = 2 b / int_(-0.5)^(0.5) c(y') dy'
 // We use rectangle integration with heaps of points to get accurate
-fn estimate_AR(cuerda: fn(f64) -> f64, b: f64) -> f64 {
+fn estimate_ar(cuerda: fn(f64) -> f64, b: f64) -> f64 {
     let dyp = 0.001;
     let mut int = 0.0;
     let mut yp = -1.0;
@@ -169,16 +167,16 @@ fn main() {
         1.0,
     );
 
-    const AOA: f64 = 0.1;
+    const AOA: f64 = 1.0 * DEG_TO_RAD;
 
     run_case(
         "out/enunciado",
         |y| linear_law(y, 2.5, 1.2),
         |y| {
-            AOA + linear_law(y, deg_to_rad(2.0), deg_to_rad(-2.0))
-                + ailerons(y, 0.1, deg_to_rad(4.0))
+            AOA + linear_law(y, 2.0 * DEG_TO_RAD, -2.0 * DEG_TO_RAD)
+                + ailerons(y, 0.1, 4.0 * DEG_TO_RAD)
         },
-        |y| 5.1,
+        |_| 5.1,
         40,
         12.0,
     );
@@ -191,9 +189,9 @@ mod test {
     #[test]
     fn ar_rectangles() {
         // In rectangles, AR is simply b / c
-        assert_relative_eq!(estimate_AR(|_| 1.0, 1.0), 1.0, max_relative = 0.001);
-        assert_relative_eq!(estimate_AR(|_| 2.0, 1.0), 0.5, max_relative = 0.001);
-        assert_relative_eq!(estimate_AR(|_| 1.0, 2.0), 2.0, max_relative = 0.001);
+        assert_relative_eq!(estimate_ar(|_| 1.0, 1.0), 1.0, max_relative = 0.001);
+        assert_relative_eq!(estimate_ar(|_| 2.0, 1.0), 0.5, max_relative = 0.001);
+        assert_relative_eq!(estimate_ar(|_| 1.0, 2.0), 2.0, max_relative = 0.001);
     }
 
     #[test]
@@ -203,17 +201,17 @@ mod test {
         // we have that SMC = c_end + 0.5 * (c_start - c_end)
         // (AR = b / SMC)
         assert_relative_eq!(
-            estimate_AR(|yp| 1.0 - yp.abs() * 0.5, 1.0),
+            estimate_ar(|yp| 1.0 - yp.abs() * 0.5, 1.0),
             1.0 / (0.5 + 0.5 * (1.0 - 0.5)),
             max_relative = 0.001
         );
         assert_relative_eq!(
-            estimate_AR(|yp| 2.0 - yp.abs(), 1.0),
+            estimate_ar(|yp| 2.0 - yp.abs(), 1.0),
             1.0 / (1.0 + 0.5 * (2.0 - 1.0)),
             max_relative = 0.001
         );
         assert_relative_eq!(
-            estimate_AR(|yp| 3.0 - yp.abs() * 0.5, 2.0),
+            estimate_ar(|yp| 3.0 - yp.abs() * 0.5, 2.0),
             2.0 / (2.5 + 0.5 * (3.0 - 2.5)),
             max_relative = 0.001
         );
@@ -226,17 +224,17 @@ mod test {
         // SMC = 0.25 * pi * A
         // Hence for an ellipse AR = b / (0.25 * pi * A)
         assert_relative_eq!(
-            estimate_AR(|yp| (1.0 - yp * yp).sqrt(), 1.0),
+            estimate_ar(|yp| (1.0 - yp * yp).sqrt(), 1.0),
             1.0 / (0.25 * std::f64::consts::PI * 1.0),
             max_relative = 0.001
         );
         assert_relative_eq!(
-            estimate_AR(|yp| (1.0 - yp * yp).sqrt() * 3.0, 1.0),
+            estimate_ar(|yp| (1.0 - yp * yp).sqrt() * 3.0, 1.0),
             1.0 / (0.25 * std::f64::consts::PI * 3.0),
             max_relative = 0.001
         );
         assert_relative_eq!(
-            estimate_AR(|yp| (1.0 - yp * yp).sqrt(), 2.0),
+            estimate_ar(|yp| (1.0 - yp * yp).sqrt(), 2.0),
             2.0 / (0.25 * std::f64::consts::PI * 1.0),
             max_relative = 0.001
         );
