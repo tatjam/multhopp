@@ -1,3 +1,5 @@
+use core::fmt;
+
 use full_palette::{BROWN, LIGHTBLUE, LIGHTGREEN};
 use plotters::prelude::*;
 
@@ -8,7 +10,7 @@ pub fn elliptical_sweep() {
     const CL_ALPHA: f64 = 2.0 * std::f64::consts::PI;
 
     const NPOINTS: [usize; 5] = [3, 5, 15, 25, 45];
-    const AR: [f64; 7] = [1.0, 2.0, 3.0, 4.0, 5.0, 8.0, 12.0];
+    const AR: [f64; 8] = [0.5, 1.0, 2.0, 3.0, 4.0, 5.0, 8.0, 12.0];
 
     // num_points, k
     let mut k_pairs: Vec<(usize, f64)> = Vec::new();
@@ -77,19 +79,22 @@ pub fn elliptical_sweep() {
             .draw()
             .unwrap();
 
-        for (i, v) in ar_pairs.iter().enumerate() {
+        for (j, v) in ar_pairs.iter().enumerate() {
+            let i = j + 1;
             cc.draw_series(
                 v.1.iter()
-                    .map(|(ar, cl, cdi)| Circle::new((*ar, *cl), (i * 2) as f64, &BLUE)),
+                    .map(|(ar, cl, cdi)| Circle::new((*ar, *cl), i as f64, &BLUE)),
             )
             .unwrap()
-            .label("k");
+            .label(format!("cl num_points = {}", v.0))
+            .legend(move |(x, y)| Circle::new((x + 10, y), i as f64, &BLUE));
             cc.draw_series(
                 v.1.iter()
-                    .map(|(ar, cl, cdi)| Circle::new((*ar, *cdi * 100.0), (i * 2) as f64, &GREEN)),
+                    .map(|(ar, cl, cdi)| Circle::new((*ar, *cdi * 100.0), i as f64, &GREEN)),
             )
             .unwrap()
-            .label("k");
+            .label(format!("cdi num_points = {}", v.0))
+            .legend(move |(x, y)| Circle::new((x + 10, y), i as f64, &GREEN));
         }
 
         // Analytical series
@@ -102,7 +107,9 @@ pub fn elliptical_sweep() {
             }),
             &LIGHTBLUE,
         ))
-        .unwrap();
+        .unwrap()
+        .label("CL (ideal)")
+        .legend(move |(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &LIGHTBLUE));
 
         cc.draw_series(LineSeries::new(
             (AR[0]..AR[AR.len() - 1]).step(0.1).values().map(|ar| {
@@ -115,7 +122,16 @@ pub fn elliptical_sweep() {
             }),
             &LIGHTGREEN,
         ))
-        .unwrap();
+        .unwrap()
+        .label("CDi (ideal)")
+        .legend(move |(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &LIGHTGREEN));
+
+        cc.configure_series_labels()
+            .border_style(&BLACK)
+            .background_style(&WHITE.mix(0.8))
+            .position(SeriesLabelPosition::UpperRight)
+            .draw()
+            .unwrap();
     }
 
     {}
