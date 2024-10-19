@@ -1,6 +1,32 @@
 use super::*;
 use std::{fs::File, io::Write};
 
+pub fn estimate_cl(sln: &fa::Mat<f64>, ar: f64) -> f64 {
+    std::f64::consts::PI * ar / 2.0 * sln[(0, 0)]
+}
+
+pub fn estimate_cdi(sln: &fa::Mat<f64>, ar: f64) -> f64 {
+    std::f64::consts::PI * ar / 4.0 * {
+        let mut sum = 0.0;
+        for i in 0..sln.nrows() {
+            let n = i + 1;
+            sum += (n as f64) * sln[(i, 0)] * sln[(i, 0)];
+        }
+        sum
+    }
+}
+
+pub fn estimate_ostwald_factor(sln: &fa::Mat<f64>) -> f64 {
+    let mut sum = 0.0;
+    let base = sln[(0, 0)] * sln[(0, 0)];
+    // i = 1 means n = 2!
+    for i in 1..sln.nrows() {
+        let n = (i + 1) as f64;
+        sum += n * sln[(i, 0)] * sln[(i, 0)] / base;
+    }
+    return 1.0 + sum;
+}
+
 pub fn run_case(
     name: &str,
     cuerda: fn(f64) -> f64,
@@ -21,16 +47,7 @@ pub fn run_case(
     let sln = multhopp::multhopp(cuerda, alpha, clalpha, num_points, b);
 
     writeln!(&mut ofile, "{:?}", sln).unwrap();
-    let k = {
-        let mut sum = 0.0;
-        let base = sln[(0, 0)] * sln[(0, 0)];
-        // i = 1 means n = 2!
-        for i in 1..sln.nrows() {
-            let n = (i + 1) as f64;
-            sum += n * sln[(i, 0)] * sln[(i, 0)] / base;
-        }
-        1.0 + sum
-    };
+    let k = estimate_ostwald_factor(&sln);
     writeln!(&mut ofile, "ostwald k = {}", k).unwrap();
 
     let mean_c = multhopp::mean_chord(cuerda, b);

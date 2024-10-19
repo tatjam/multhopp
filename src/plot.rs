@@ -139,14 +139,14 @@ pub fn add_fn(
     let b_range_step = ctx.b_range.clone().step(0.001);
     let b = ctx.b_range.end - ctx.b_range.start;
 
-    let (A, B) = if quarter { (0.25, 0.75) } else { (1.0, 0.0) };
+    let (fseg, sseg) = if quarter { (0.25, 0.75) } else { (1.0, 0.0) };
 
     // We place the top line such that it's 1/4 of the chord
     ctx.cc
         .draw_series(LineSeries::new(
             b_range_step.values().map(|y| {
                 let adimy = 2.0 * y / b;
-                (y, (cuerda(adimy) * scale * A * b) as f32)
+                (y, (cuerda(adimy) * scale * fseg * b) as f32)
             }),
             &BLUE,
         ))
@@ -159,7 +159,7 @@ pub fn add_fn(
             .draw_series(LineSeries::new(
                 b_range_step.values().map(|y| {
                     let adimy = 2.0 * y / b;
-                    (y, (-cuerda(adimy) * scale * B * b) as f32)
+                    (y, (-cuerda(adimy) * scale * sseg * b) as f32)
                 }),
                 &BLUE,
             ))
