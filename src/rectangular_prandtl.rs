@@ -1,6 +1,6 @@
 use core::fmt;
 
-use full_palette::{BROWN, LIGHTBLUE, LIGHTGREEN};
+use full_palette::{BROWN, GREEN_400, LIGHTBLUE, LIGHTGREEN};
 use plotters::prelude::*;
 
 use super::*;
@@ -39,19 +39,29 @@ pub fn rectangular_prandtl() {
     {
         let root_area =
             BitMapBackend::new("out/rectangular-sweep.png", (1024, 768)).into_drawing_area();
+        /*let root_area =
+        SVGBackend::new("out/rectangular-sweep.svg", (1024, 768)).into_drawing_area();*/
         root_area.fill(&WHITE).unwrap();
 
         let mut cc = ChartBuilder::on(&root_area)
             .margin(5)
             .set_all_label_area_size(50)
-            .build_cartesian_2d(AR_OVER_2PI[0]..AR_OVER_2PI[AR_OVER_2PI.len() - 1], 0.0..1.5)
-            .unwrap();
+            .build_cartesian_2d(AR_OVER_2PI[0]..AR_OVER_2PI[AR_OVER_2PI.len() - 1], 0.0..0.6)
+            .unwrap()
+            .set_secondary_coord(
+                AR_OVER_2PI[0]..AR_OVER_2PI[AR_OVER_2PI.len() - 1],
+                0.004..0.014,
+            );
 
         cc.configure_mesh()
-            .x_labels(20)
-            .y_labels(15)
+            .x_labels(5)
+            .y_labels(20)
+            .x_desc("AR / (2 pi)")
+            .y_desc("CL")
             .draw()
             .unwrap();
+
+        cc.configure_secondary_axes().y_desc("CDi").draw().unwrap();
 
         for (j, v) in ar_pairs.iter().enumerate() {
             let i = j + 1;
@@ -61,12 +71,8 @@ pub fn rectangular_prandtl() {
             .unwrap()
             .label(format!("cl num_points = {}", v.0))
             .legend(move |(x, y)| Circle::new((x + 10, y), i as f64, &BLUE));
-            cc.draw_series(v.1.iter().map(|(ar, cl, cdi)| {
-                Circle::new(
-                    (*ar / (2.0 * std::f64::consts::PI), *cdi * 100.0),
-                    i as f64,
-                    &GREEN,
-                )
+            cc.draw_secondary_series(v.1.iter().map(|(ar, cl, cdi)| {
+                Circle::new((*ar / (2.0 * std::f64::consts::PI), *cdi), i as f64, &GREEN)
             }))
             .unwrap()
             .label(format!("cdi num_points = {}", v.0))
@@ -87,26 +93,26 @@ pub fn rectangular_prandtl() {
         cc.draw_series(glauert.iter().map(|(ar_over_2pi, a_over_a0, delta)| {
             let ar = 2.0 * std::f64::consts::PI * ar_over_2pi;
             let cl = 2.0 * std::f64::consts::PI * a_over_a0 * AOA;
-            TriangleMarker::new((*ar_over_2pi, cl), 5.0, &LIGHTBLUE)
+            Cross::new((*ar_over_2pi, cl), 8.0, &BLACK)
         }))
         .unwrap()
         .label(format!("cl glauert"))
-        .legend(move |(x, y)| TriangleMarker::new((x + 10, y), 5.0, &LIGHTBLUE));
+        .legend(move |(x, y)| Cross::new((x + 10, y), 5.0, &BLACK));
 
-        cc.draw_series(glauert.iter().map(|(ar_over_2pi, a_over_a0, delta)| {
+        cc.draw_secondary_series(glauert.iter().map(|(ar_over_2pi, a_over_a0, delta)| {
             let ar = 2.0 * std::f64::consts::PI * ar_over_2pi;
             let cl = 2.0 * std::f64::consts::PI * a_over_a0 * AOA;
             let cd = cl * cl / (std::f64::consts::PI * ar) * (1.0 + delta);
-            TriangleMarker::new((*ar_over_2pi, 100.0 * cd), 5.0, &LIGHTGREEN)
+            Cross::new((*ar_over_2pi, cd), 8.0, &BLACK)
         }))
         .unwrap()
         .label(format!("cdi glauert"))
-        .legend(move |(x, y)| TriangleMarker::new((x + 10, y), 5.0, &LIGHTGREEN));
+        .legend(move |(x, y)| Cross::new((x + 10, y), 5.0, &BLACK));
 
         cc.configure_series_labels()
             .border_style(&BLACK)
             .background_style(&WHITE.mix(0.8))
-            .position(SeriesLabelPosition::UpperLeft)
+            .position(SeriesLabelPosition::LowerLeft)
             .draw()
             .unwrap();
     }

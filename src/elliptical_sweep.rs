@@ -69,13 +69,18 @@ pub fn elliptical_sweep() {
             .margin(5)
             .set_all_label_area_size(50)
             .build_cartesian_2d(AR[0]..AR[AR.len() - 1], 0.0..1.5)
-            .unwrap();
+            .unwrap()
+            .set_secondary_coord(AR[0]..AR[AR.len() - 1], 0.0..0.015);
 
         cc.configure_mesh()
             .x_labels(20)
             .y_labels(15)
+            .x_desc("AR")
+            .y_desc("CL")
             .draw()
             .unwrap();
+
+        cc.configure_secondary_axes().y_desc("CDi").draw().unwrap();
 
         for (j, v) in ar_pairs.iter().enumerate() {
             let i = j + 1;
@@ -86,9 +91,9 @@ pub fn elliptical_sweep() {
             .unwrap()
             .label(format!("cl num_points = {}", v.0))
             .legend(move |(x, y)| Circle::new((x + 10, y), i as f64, &BLUE));
-            cc.draw_series(
+            cc.draw_secondary_series(
                 v.1.iter()
-                    .map(|(ar, cl, cdi)| Circle::new((*ar, *cdi * 100.0), i as f64, &GREEN)),
+                    .map(|(ar, cl, cdi)| Circle::new((*ar, *cdi), i as f64, &GREEN)),
             )
             .unwrap()
             .label(format!("cdi num_points = {}", v.0))
@@ -109,12 +114,11 @@ pub fn elliptical_sweep() {
         .label("CL (ideal)")
         .legend(move |(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &LIGHTBLUE));
 
-        cc.draw_series(LineSeries::new(
+        cc.draw_secondary_series(LineSeries::new(
             (AR[0]..AR[AR.len() - 1]).step(0.1).values().map(|ar| {
                 (
                     ar,
-                    100.0
-                        * (AOA * CL_ALPHA / (1.0 + CL_ALPHA / (std::f64::consts::PI * ar))).powi(2)
+                    (AOA * CL_ALPHA / (1.0 + CL_ALPHA / (std::f64::consts::PI * ar))).powi(2)
                         / (std::f64::consts::PI * ar),
                 )
             }),
