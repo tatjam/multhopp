@@ -59,8 +59,6 @@ pub fn elliptical_sweep() {
         ar_pairs.push((num_points, vecn));
     }
 
-    println!("{:#?}", ar_pairs);
-
     // and nother of cl and cdi over ar, with different colors for each num_points
     {
         let root_area =
