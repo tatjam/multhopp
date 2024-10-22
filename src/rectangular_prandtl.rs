@@ -37,10 +37,10 @@ pub fn rectangular_prandtl() {
 
     // and nother of cl and cdi over ar, with different colors for each num_points
     {
-        let root_area =
-            BitMapBackend::new("out/rectangular-sweep.png", (1024, 768)).into_drawing_area();
         /*let root_area =
-        SVGBackend::new("out/rectangular-sweep.svg", (1024, 768)).into_drawing_area();*/
+        BitMapBackend::new("out/rectangular-sweep.png", (1024, 768)).into_drawing_area();*/
+        let root_area =
+            SVGBackend::new("out/rectangular-sweep.svg", (1024, 768)).into_drawing_area();
         root_area.fill(&WHITE).unwrap();
 
         let mut cc = ChartBuilder::on(&root_area)

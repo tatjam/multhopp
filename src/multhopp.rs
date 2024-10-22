@@ -38,6 +38,7 @@ pub fn multhopp(
         }
 
         rhs[(j, 0)] = alpha;
+        // If TFG method is used, write this instead:
         //rhs[(j, 0)] = clalpha * alpha;
     }
 
@@ -85,6 +86,44 @@ pub fn cosine_samples(num_points: usize, b: f64) -> (Vec<f64>, Vec<f64>) {
     let ys: Vec<f64> = thetas.iter().map(|c| b / 2.0 * c.cos()).collect();
 
     return (thetas, ys);
+}
+
+pub struct AeroCoefficients {
+    cl: f64,
+    cd: f64,
+    cmx: f64,
+    cmz: f64,
+}
+
+pub fn calculate_coefficients(sln: &fa::Mat<f64>, ar: f64) -> AeroCoefficients {
+    use std::f64::consts::PI;
+    let cl = PI * ar / 2.0 * sln[(0, 0)];
+    let cd = cl * cl / (PI * ar)
+        * (1.0 + {
+            let mut sum = 0.0;
+            for i in 1..sln.nrows() {
+                let n = (i + 1) as f64;
+                sum += n * sln[(i, 0)] * sln[(i, 0)];
+            }
+            sum / (sln[(0, 0)] * sln[(0, 0)])
+        });
+
+    let cmx = PI * ar / 8.0 * sln[(1, 0)];
+    let cmz = -PI * ar / 16.0 * {
+        let mut sum = 0.0;
+        for i in 0..(sln.nrows() - 1) {
+            let n = (i + 1) as f64;
+            sum += (2.0 * n + 1.0) * sln[(i, 0)] * sln[(i + 1, 0)];
+        }
+        sum
+    };
+
+    return AeroCoefficients {
+        cl: cl,
+        cd: cd,
+        cmx: cmx,
+        cmz: cmz,
+    };
 }
 
 #[cfg(test)]
